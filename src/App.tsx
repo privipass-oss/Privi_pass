@@ -1,114 +1,66 @@
-import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
-import { useToast } from '@/hooks';
-import { customersService, partnersService, productsService, benefitsService, faqService, marketingService, transactionsService, emailService, adminService, vouchersService } from '@/services/database';
+import { useState, useEffect } from 'react'
+import { supabase } from './lib/supabase'
+import { Plane } from 'lucide-react'
 
-// ... resto dos imports
+function App() {
+  const [loading, setLoading] = useState(true)
 
-export default function App() {
-  const [appMode, setAppMode] = useState<AppMode>('LANDING');
-  const [loading, setLoading] = useState(true);
-  
-  // States
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [partners, setPartners] = useState<Partner[]>([]);
-  const [products, setProducts] = useState<VoucherPack[]>([]);
-  const [benefits, setBenefits] = useState<PartnerBenefit[]>([]);
-  const [faqItems, setFaqItems] = useState<FAQItem[]>([]);
-  const [marketingAssets, setMarketingAssets] = useState<MarketingAsset[]>([]);
-  const [transactions, setTransactions] = useState<PartnerTransaction[]>([]);
-  const [emailCampaigns, setEmailCampaigns] = useState<EmailCampaign[]>([]);
-  const [staffMembers, setStaffMembers] = useState<AdminUser[]>([]);
-  const [adminProfile, setAdminProfile] = useState<AdminUser | null>(null);
-
-  const toast = useToast();
-
-  // Load all data from Supabase
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        const [
-          customersData,
-          partnersData,
-          productsData,
-          benefitsData,
-          faqData,
-          marketingData,
-          transactionsData,
-          campaignsData,
-          staffData,
-          adminData,
-        ] = await Promise.all([
-          customersService.getAll(),
-          partnersService.getAll(),
-          productsService.getAll(),
-          benefitsService.getAll(),
-          faqService.getAll(),
-          marketingService.getAll(),
-          transactionsService.getAll(),
-          emailService.getAll(),
-          adminService.getStaff(),
-          adminService.getProfile(),
-        ]);
+    checkConnection()
+  }, [])
 
-        setCustomers(customersData);
-        setPartners(partnersData);
-        setProducts(productsData);
-        setBenefits(benefitsData);
-        setFaqItems(faqData);
-        setMarketingAssets(marketingData);
-        setTransactions(transactionsData);
-        setEmailCampaigns(campaignsData);
-        setStaffMembers(staffData);
-        setAdminProfile(adminData);
-      } catch (error) {
-        console.error('Error loading data:', error);
-        toast.error('Erro ao carregar dados');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadData();
-  }, []);
-
-  // Customer handlers
-  const handleAddCustomer = async (data: Partial<Customer>) => {
+  const checkConnection = async () => {
     try {
-      const newCustomer = await customersService.create(data);
-      setCustomers(prev => [newCustomer, ...prev]);
-      toast.success('Cliente adicionado');
+      const { data, error } = await supabase.from('customers').select('count')
+      if (error) throw error
+      console.log('Supabase conectado!')
     } catch (error) {
-      toast.error('Erro ao adicionar cliente');
+      console.error('Erro Supabase:', error)
+    } finally {
+      setLoading(false)
     }
-  };
+  }
 
-  const handleUpdateCustomer = async (id: string, updates: Partial<Customer>) => {
-    try {
-      await customersService.update(id, updates);
-      setCustomers(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
-      
-      // Update vouchers if needed
-      if (updates.activeVouchers) {
-        const customer = customers.find(c => c.id === id);
-        if (customer) {
-          const newVouchers = updates.activeVouchers.filter(
-            v => !customer.activeVouchers.find(cv => cv.id === v.id)
-          );
-          for (const voucher of newVouchers) {
-            await vouchersService.create(id, voucher);
-          }
-        }
-      }
-      
-      toast.success('Cliente atualizado');
-    } catch (error) {
-      toast.error('Erro ao atualizar cliente');
-    }
-  };
+  return (
+    <div className="min-h-screen flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full">
+        <div className="flex items-center justify-center mb-6">
+          <Plane className="w-12 h-12 text-purple-600" />
+        </div>
+        
+        <h1 className="text-3xl font-bold text-center mb-2 text-gray-800">
+          Privilege Pass
+        </h1>
+        
+        <p className="text-center text-gray-600 mb-6">
+          Acesso VIP a Lounges de Aeroporto
+        </p>
 
-  // ... adicione handlers similares para partners, products, etc.
+        {loading ? (
+          <div className="text-center py-8">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Conectando...</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <button className="w-full bg-purple-600 text-white py-3 rounded-lg font-semibold hover:bg-purple-700 transition">
+              Entrar
+            </button>
+            
+            <button className="w-full border-2 border-purple-600 text-purple-600 py-3 rounded-lg font-semibold hover:bg-purple-50 transition">
+              Criar Conta
+            </button>
+          </div>
+        )}
 
-  if (loading) return <LoadingScreen />;
-
-  // ... resto do componente
+        <div className="mt-6 pt-6 border-t border-gray-200">
+          <p className="text-sm text-center text-gray-500">
+            v4.0.0 - Build Limpo
+          </p>
+        </div>
+      </div>
+    </div>
+  )
 }
+
+export default App
