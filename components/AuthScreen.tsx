@@ -1,252 +1,182 @@
-import React, { useState } from 'react';
-import { Mail, Lock, User, Phone, ArrowRight, ArrowLeft } from 'lucide-react';
-import { AuthMode } from '../types';
-import { LOGO_URL } from '../constants';
-import { adminService, customersService, partnersService } from '../services/database';
+import { useState } from 'react';
+import { Plane, Mail, Lock, User, Phone, CreditCard } from 'lucide-react';
 
 interface AuthScreenProps {
-  onAuthenticated: (role: 'client' | 'admin' | 'partner', user?: any) => void;
+  mode: 'login' | 'register';
+  onLogin: (email: string, password: string) => Promise<void>;
+  onRegister: (email: string, password: string, userData: any) => Promise<void>;
   onBack: () => void;
+  onSwitchMode: () => void;
 }
 
-export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthenticated, onBack }) => {
-  const [mode, setMode] = useState<AuthMode>('LOGIN');
+export default function AuthScreen({ mode, onLogin, onRegister, onBack, onSwitchMode }: AuthScreenProps) {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [cpf, setCpf] = useState('');
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-    name: '',
-    phone: '',
-  });
+  const [error, setError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (formData.password.length < 6) {
-      alert('A senha deve ter no mínimo 6 caracteres.');
-      return;
-    }
-
+    setError('');
     setLoading(true);
 
     try {
-      const inputEmail = formData.email.toLowerCase().trim();
-      const inputPass = formData.password;
-
-      // 1. Check Main Admin (busca do Supabase)
-      const adminProfile = await adminService.getProfile();
-      if (adminProfile && inputEmail === adminProfile.email.toLowerCase()) {
-        if (inputPass === adminProfile.password) {
-          onAuthenticated('admin', adminProfile);
-          return;
-        } else {
-          alert('Senha de administrador incorreta.');
-          setLoading(false);
-          return;
-        }
-      }
-
-      // 2. Check Staff Members (busca do Supabase)
-      const staff = await adminService.getStaff();
-      const foundStaff = staff.find((s) => s.email.toLowerCase() === inputEmail);
-      if (foundStaff) {
-        if (foundStaff.password && foundStaff.password === inputPass) {
-          onAuthenticated('admin', foundStaff);
-          return;
-        } else {
-          alert('Senha de equipe incorreta.');
-          setLoading(false);
-          return;
-        }
-      }
-
-      // 3. Check Partner (busca do Supabase)
-      const partners = await partnersService.getAll();
-      const foundPartner = partners.find((p) => p.email.toLowerCase() === inputEmail);
-      if (foundPartner) {
-        if (mode === 'REGISTER') {
-          alert('Este email já é de um parceiro. Faça login.');
-          setMode('LOGIN');
-          setLoading(false);
-          return;
-        }
-        onAuthenticated('partner', foundPartner);
-        return;
-      }
-
-      // 4. Client Logic (busca do Supabase)
-      const customers = await customersService.getAll();
-      
-      if (mode === 'LOGIN') {
-        const foundCustomer = customers.find((c) => c.email.toLowerCase() === inputEmail);
-        if (foundCustomer) {
-          if (foundCustomer.password && foundCustomer.password === inputPass) {
-            onAuthenticated('client', foundCustomer);
-            return;
-          } else {
-            alert('Senha incorreta.');
-            setLoading(false);
-            return;
-          }
-        } else {
-          alert('Cliente não encontrado. Verifique o e-mail ou cadastre-se.');
-          setLoading(false);
-          return;
-        }
+      if (mode === 'login') {
+        await onLogin(email, password);
       } else {
-        // Register Mode
-        const exists = customers.find((c) => c.email.toLowerCase() === inputEmail);
-        if (exists) {
-          alert('Este e-mail já está cadastrado. Faça login.');
-          setMode('LOGIN');
-          setLoading(false);
-          return;
-        }
-
-        // Create new customer in Supabase
-        const newCustomer = await customersService.create({
-          name: formData.name,
-          email: formData.email,
-          phone: formData.phone,
-          password: formData.password,
+        await onRegister(email, password, {
+          name,
+          phone,
+          cpf,
         });
-
-        console.log('System: Sending Welcome Email to', inputEmail);
-        onAuthenticated('client', newCustomer);
-        return;
       }
-    } catch (error) {
-      console.error('Login error:', error);
-      alert('Erro ao fazer login. Tente novamente.');
+    } catch (err: any) {
+      setError(err.message || 'Ocorreu um erro. Tente novamente.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-black p-6 relative overflow-hidden">
-      {/* Background Effects */}
-      <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-amber-500/10 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-zinc-800/20 rounded-full blur-[120px] pointer-events-none" />
-
-      {/* Back Button */}
-      <button
-        onClick={onBack}
-        className="absolute top-8 left-8 text-zinc-500 hover:text-white flex items-center gap-2 transition-colors"
-      >
-        <ArrowLeft size={20} />
-        Voltar
-      </button>
-
-      {/* Auth Card */}
-      <div className="w-full max-w-md bg-zinc-900/50 backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-2xl relative z-10 animate-fade-in">
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 rounded-xl flex items-center justify-center mx-auto mb-4 shadow-[0_0_20px_rgba(234,179,8,0.3)] overflow-hidden border border-gold-500/50">
-            <img src={LOGO_URL} alt="Logo" className="w-full h-full object-cover" />
-          </div>
-          <h2 className="text-2xl font-bold text-white font-display">
-            {mode === 'LOGIN' ? 'Bem-vindo de volta' : 'Criar sua conta'}
-          </h2>
-          <p className="text-zinc-500 text-sm mt-2">
-            {mode === 'LOGIN'
-              ? 'Acesse sua conta para gerenciar vouchers.'
-              : 'Cadastre-se para comprar acesso VIP.'}
-          </p>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-600 via-purple-700 to-blue-800 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full">
+        <div className="flex items-center justify-center mb-6">
+          <Plane className="w-12 h-12 text-purple-600" />
         </div>
 
-        {/* Form */}
+        <h2 className="text-3xl font-bold text-gray-800 mb-2 text-center">
+          {mode === 'login' ? 'Bem-vindo de volta' : 'Criar sua conta'}
+        </h2>
+        <p className="text-gray-600 text-center mb-8">
+          {mode === 'login' 
+            ? 'Entre para acessar sua conta' 
+            : 'Junte-se a milhares de viajantes'}
+        </p>
+
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
+            {error}
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-4">
-          {mode === 'REGISTER' && (
+          {mode === 'register' && (
             <>
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-zinc-500 uppercase ml-1">Nome Completo</label>
-                <div className="relative">
-                  <User className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
-                  <input
-                    required
-                    type="text"
-                    placeholder="Seu nome"
-                    className="w-full bg-black/50 border border-white/10 rounded-xl py-3 pl-11 pr-4 text-white focus:border-amber-500/50 outline-none transition-colors"
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  />
-                </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <User className="w-4 h-4 inline mr-2" />
+                  Nome Completo
+                </label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                  placeholder="João Silva"
+                  required
+                />
               </div>
 
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-zinc-500 uppercase ml-1">WhatsApp</label>
-                <div className="relative">
-                  <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
-                  <input
-                    required
-                    type="tel"
-                    placeholder="(11) 99999-9999"
-                    className="w-full bg-black/50 border border-white/10 rounded-xl py-3 pl-11 pr-4 text-white focus:border-amber-500/50 outline-none transition-colors"
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  />
-                </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <Phone className="w-4 h-4 inline mr-2" />
+                  Telefone
+                </label>
+                <input
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                  placeholder="(11) 99999-9999"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <CreditCard className="w-4 h-4 inline mr-2" />
+                  CPF
+                </label>
+                <input
+                  type="text"
+                  value={cpf}
+                  onChange={(e) => setCpf(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+                  placeholder="000.000.000-00"
+                  required
+                />
               </div>
             </>
           )}
 
-          <div className="space-y-1">
-            <label className="text-xs font-bold text-zinc-500 uppercase ml-1">Email</label>
-            <div className="relative">
-              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
-              <input
-                required
-                type="email"
-                placeholder="seuemail@exemplo.com"
-                className="w-full bg-black/50 border border-white/10 rounded-xl py-3 pl-11 pr-4 text-white focus:border-amber-500/50 outline-none transition-colors"
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              />
-            </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              <Mail className="w-4 h-4 inline mr-2" />
+              Email
+            </label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+              placeholder="seu@email.com"
+              required
+            />
           </div>
 
-          <div className="space-y-1">
-            <label className="text-xs font-bold text-zinc-500 uppercase ml-1">Senha</label>
-            <div className="relative">
-              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
-              <input
-                required
-                type="password"
-                placeholder="••••••"
-                className="w-full bg-black/50 border border-white/10 rounded-xl py-3 pl-11 pr-4 text-white focus:border-amber-500/50 outline-none transition-colors"
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              />
-            </div>
-            <p className="text-[10px] text-zinc-600 text-right">Mínimo 6 caracteres</p>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              <Lock className="w-4 h-4 inline mr-2" />
+              Senha
+            </label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-600 focus:border-transparent"
+              placeholder="••••••••"
+              required
+            />
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-4 bg-amber-600 hover:bg-amber-500 text-black font-bold rounded-xl transition-all mt-4 flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(234,179,8,0.2)]"
+            className="w-full bg-purple-600 text-white py-3 rounded-lg font-semibold hover:bg-purple-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? (
-              <span className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin" />
-            ) : (
-              <>
-                {mode === 'LOGIN' ? 'Entrar' : 'Criar Conta'}
-                <ArrowRight size={18} />
-              </>
-            )}
+            {loading ? 'Aguarde...' : mode === 'login' ? 'Entrar' : 'Criar Conta'}
           </button>
         </form>
 
-        {/* Toggle Mode */}
-        <div className="mt-6 text-center">
-          <p className="text-zinc-500 text-sm">
-            {mode === 'LOGIN' ? 'Não tem uma conta?' : 'Já tem uma conta?'}
+        <div className="mt-6 text-center space-y-3">
+          <button
+            onClick={onSwitchMode}
+            className="text-purple-600 hover:text-purple-700 font-medium"
+          >
+            {mode === 'login' 
+              ? 'Não tem conta? Cadastre-se' 
+              : 'Já tem conta? Faça login'}
+          </button>
+          
+          <div>
             <button
-              onClick={() => setMode(mode === 'LOGIN' ? 'REGISTER' : 'LOGIN')}
-              className="text-amber-500 font-bold ml-2 hover:underline"
+              onClick={onBack}
+              className="text-gray-600 hover:text-gray-700"
             >
-              {mode === 'LOGIN' ? 'Cadastre-se' : 'Fazer Login'}
+              ← Voltar
             </button>
+          </div>
+        </div>
+
+        <div className="mt-8 pt-6 border-t border-gray-200">
+          <p className="text-sm text-center text-gray-500">
+            v4.0.0 - Privilege Pass Pro
           </p>
         </div>
       </div>
     </div>
   );
-};
+}
