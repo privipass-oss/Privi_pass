@@ -208,4 +208,113 @@ function App() {
               </button>
             </div>
           </div>
-        </div
+        </div>
+
+        {/* Mobile Menu */}
+        {menuOpen && (
+          <div className="md:hidden border-t border-gray-200 bg-white">
+            <div className="px-4 py-2 space-y-1">
+              <button
+                onClick={() => { setScreen('dashboard'); setMenuOpen(false) }}
+                className="w-full text-left px-4 py-2 rounded-lg hover:bg-gray-100"
+              >
+                Dashboard
+              </button>
+              <button
+                onClick={() => { setScreen('clientes'); setMenuOpen(false) }}
+                className="w-full text-left px-4 py-2 rounded-lg hover:bg-gray-100"
+              >
+                Clientes
+              </button>
+              <button
+                onClick={() => { setScreen('parceiros'); setMenuOpen(false) }}
+                className="w-full text-left px-4 py-2 rounded-lg hover:bg-gray-100"
+              >
+                Parceiros
+              </button>
+              <button
+                onClick={() => { setScreen('produtos'); setMenuOpen(false) }}
+                className="w-full text-left px-4 py-2 rounded-lg hover:bg-gray-100"
+              >
+                Produtos
+              </button>
+              <button
+                onClick={handleLogout}
+                className="w-full text-left px-4 py-2 text-red-600 rounded-lg hover:bg-red-50"
+              >
+                Sair
+              </button>
+            </div>
+          </div>
+        )}
+      </header>
+
+      {/* Content */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {screen === 'dashboard' && (
+          <div>
+            <h2 className="text-3xl font-bold text-gray-900 mb-8">Dashboard</h2>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                <div className="flex items-center justify-between mb-4">
+                  <Users className="w-10 h-10 text-blue-600" />
+                  <span className="text-3xl font-bold text-gray-900">0</span>
+                </div>
+                <h3 className="text-lg font-semibold text-gray-700">Clientes</h3>
+                <p className="text-sm text-gray-500">Total de membros</p>
+              </div>
+
+              <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                <div className="flex items-center justify-between mb-4">
+                  <Package className="w-10 h-10 text-green-600" />
+                  <span className="text-3xl font-bold text-gray-900">0</span>
+                </div>
+                <h3 className="text-lg font-semibold text-gray-700">Parceiros</h3>
+                <p className="text-sm text-gray-500">Lounges ativos</p>
+              </div>
+
+              <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                <div className="flex items-center justify-between mb-4">
+                  <TrendingUp className="w-10 h-10 text-purple-600" />
+                  <span className="text-3xl font-bold text-gray-900">R$ 0</span>
+                </div>
+                <h3 className="text-lg font-semibold text-gray-700">Vendas</h3>
+                <p className="text-sm text-gray-500">Total do mês</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {screen === 'clientes' && (
+          <div>
+            <h2 className="text-3xl font-bold text-gray-900 mb-8">Gestão de Clientes</h2>
+            <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-200">
+              <p className="text-gray-600">Sistema de clientes em desenvolvimento...</p>
+            </div>
+          </div>
+        )}
+
+        {screen === 'parceiros' && (
+          <div>
+            <h2 className="text-3xl font-bold text-gray-900 mb-8">Gestão de Parceiros</h2>
+            <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-200">
+              <p className="text-gray-600">Sistema de parceiros em desenvolvimento...</p>
+            </div>
+          </div>
+        )}
+
+        {screen === 'produtos' && (
+          <div>
+            <h2 className="text-3xl font-bold text-gray-900 mb-8">Gestão de Produtos</h2>
+            <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-200">
+              <p className="text-gray-600">Sistema de produtos em desenvolvimento...</p>
+            </div>
+          </div>
+        )}
+      </main>
+    </div>
+  )
+}
+
+export default App
